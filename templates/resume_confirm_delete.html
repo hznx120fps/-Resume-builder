@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h2>Видалити резюме?</h2>
+        <p>Ви впевнені, що хочете видалити <strong>{{ resume.title }}</strong>?</p>
+        <form method="post" id="delete-form">
+            {% csrf_token %}
+            <button class="btn btn-danger" type="submit" id="delete-submit">Так, видалити</button>
+            <a class="btn btn-secondary" href="{% url 'resume_list' %}">Скасувати</a>
+        </form>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('delete-form');
+        const button = document.getElementById('delete-submit');
+        if (form && button) {
+            form.addEventListener('submit', function () {
+                button.disabled = true;
+                button.textContent = 'Видалення...';
+            });
+        }
+    });
+</script>
+{% endblock %}

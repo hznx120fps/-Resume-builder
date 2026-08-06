@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <h1 class="display-5 fw-bold">Створіть сильне резюме за кілька хвилин</h1>
+        <p class="lead">Вибирайте шаблони, заповнюйте дані, зберігайте версії і експортуйте у DOCX.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'templates_list' %}">Почати</a>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Популярні шаблони</h5>
+                <ul class="mb-0">
+                    <li>Класичний</li>
+                    <li>IT</li>
+                    <li>Менеджер</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<hr class="my-4">
+<h3>Останні новини</h3>
+<ul>
+    {% for item in news_items %}
+    <li><strong>{{ item.title }}</strong> — {{ item.content }}</li>
+    {% empty %}
+    <li>Наразі немає новин.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

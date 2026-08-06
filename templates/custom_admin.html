@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Адмін панель</h2>
+<p class="text-muted">Тут можна переглядати резюме, приймати або відхиляти їх, а також перейти до Django admin.</p>
+<div class="mt-4">
+    <a class="btn btn-outline-secondary" href="/admin/">Відкрити Django admin</a>
+</div>
+<hr class="my-4">
+<div class="row g-3">
+    {% for resume in resumes %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="card-title mb-1">{{ resume.title }}</h5>
+                        <p class="mb-1"><strong>Користувач:</strong> {{ resume.user.username }}</p>
+                        <p class="mb-1"><strong>Статус:</strong> {{ resume.get_status_display }}</p>
+                        <p class="mb-0"><strong>Опис:</strong> {{ resume.summary|truncatechars:160 }}</p>
+                    </div>
+                    <div class="btn-group">
+                        <form method="post" action="{% url 'admin_resume_action' resume.pk 'approve' %}">{% csrf_token %}<button class="btn btn-success btn-sm" type="submit">Прийняти</button></form>
+                        <form method="post" action="{% url 'admin_resume_action' resume.pk 'reject' %}">{% csrf_token %}<button class="btn btn-warning btn-sm" type="submit">Відхилити</button></form>
+                        <form method="post" action="{% url 'admin_resume_action' resume.pk 'delete' %}">{% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Видалити</button></form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-secondary">Наразі немає резюме для перевірки.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Резюме для перегляду</h2>
+{% if resumes %}
+<ul class="list-group">
+    {% for resume in resumes %}
+    <li class="list-group-item">
+        <strong>{{ resume.title }}</strong> — {{ resume.user.username }}<br>
+        <small>{{ resume.summary|truncatechars:120 }}</small>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>Наразі немає опублікованих резюме.</p>
+{% endif %}
+{% endblock %}

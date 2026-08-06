@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+    {% for template in templates %}
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title">{{ template.name }}</h4>
+                <p class="card-text">{{ template.description }}</p>
+                <a class="btn btn-outline-primary" href="{% url 'choose_template' template.slug %}">Обрати шаблон</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

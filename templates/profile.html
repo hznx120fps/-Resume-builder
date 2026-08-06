@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Профіль</h2>
+<form method="post" enctype="multipart/form-data" class="mt-3">
+    {% csrf_token %}
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="id_full_name" class="form-label">Повне ім'я</label>
+                {{ form.full_name }}
+            </div>
+            <div class="mb-3">
+                <label for="id_title" class="form-label">Посада</label>
+                {{ form.title }}
+            </div>
+            <div class="mb-3">
+                <label for="id_email" class="form-label">Email</label>
+                {{ form.email }}
+            </div>
+            <div class="mb-3">
+                <label for="id_phone" class="form-label">Телефон</label>
+                {{ form.phone }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="id_location" class="form-label">Локація</label>
+                {{ form.location }}
+            </div>
+            <div class="mb-3">
+                <label for="id_bio" class="form-label">Біографія</label>
+                {{ form.bio }}
+            </div>
+            <div class="mb-3">
+                <label for="id_photo" class="form-label">Фото профілю</label>
+                {{ form.photo }}
+            </div>
+            <button class="btn btn-primary" type="submit">Зберегти</button>
+        </div>
+    </div>
+</form>
+{% endblock %}
