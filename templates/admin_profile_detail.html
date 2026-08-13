@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Профіль користувача: {{ profile.full_name }} ({{ profile.user.username }})</h2>
+  <div class="row">
+    <div class="col-md-3">
+      {% if profile.photo %}
+        <img src="{{ profile.photo.url }}" class="img-fluid rounded" alt="Фото">
+      {% else %}
+        <div class="border rounded p-4 text-center">Немає фото</div>
+      {% endif %}
+      <p class="mt-2"><strong>Email:</strong> {{ profile.user.email }}</p>
+      <p><strong>Останній візит:</strong> {{ profile.last_seen }}</p>
+    </div>
+    <div class="col-md-9">
+      <h4>Резюме користувача</h4>
+      {% if resumes %}
+        <ul class="list-group">
+        {% for r in resumes %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ r.title }}</strong>
+              <div class="text-muted small">Статус: {{ r.get_status_display }} {% if r.is_deleted %}(архів){% endif %}</div>
+            </div>
+            <div>
+              <a href="{% url 'admin_resume_detail' r.pk %}" class="btn btn-sm btn-outline-primary">Деталі</a>
+              {% if r.is_public and not r.is_deleted %}
+                <a href="{% url 'resume_public_detail' r.pk %}" class="btn btn-sm btn-secondary">Перегляд публічний</a>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>Резюме відсутні.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

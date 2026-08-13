@@ -38,6 +38,8 @@ class ResumeForm(forms.ModelForm):
 
 
 class NewsForm(forms.ModelForm):
+    image = forms.ImageField(required=False)
+
     class Meta:
         model = NewsItem
-        fields = ('title', 'content')
+        fields = ('title', 'content', 'image')

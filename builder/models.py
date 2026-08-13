@@ -12,6 +12,7 @@ class Profile(models.Model):
     location = models.CharField(max_length=200, blank=True)
     bio = models.TextField(blank=True)
     photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.full_name or self.user.username
@@ -35,6 +36,7 @@ class Resume(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_public = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -43,6 +45,8 @@ class Resume(models.Model):
 class NewsItem(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
+    image = models.ImageField(upload_to='news/', blank=True, null=True)
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='news_items')
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

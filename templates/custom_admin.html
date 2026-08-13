@@ -2,6 +2,7 @@
 {% block content %}
 <h2>Адмін панель</h2>
 <p class="text-muted">Тут можна переглядати резюме, приймати або відхиляти їх, а також перейти до Django admin.</p>
+<p><a href="{% url 'admin_online_users' %}">Користувачі онлайн</a></p>
 <div class="mt-4">
     <a class="btn btn-outline-secondary" href="/admin/">Відкрити Django admin</a>
 </div>
@@ -13,15 +14,30 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <h5 class="card-title mb-1">{{ resume.title }}</h5>
+                        <h5 class="card-title mb-1"><a href="{% url 'admin_resume_detail' resume.pk %}">{{ resume.title }}</a></h5>
                         <p class="mb-1"><strong>Користувач:</strong> {{ resume.user.username }}</p>
                         <p class="mb-1"><strong>Статус:</strong> {{ resume.get_status_display }}</p>
                         <p class="mb-0"><strong>Опис:</strong> {{ resume.summary|truncatechars:160 }}</p>
                     </div>
-                    <div class="btn-group">
-                        <form method="post" action="{% url 'admin_resume_action' resume.pk 'approve' %}">{% csrf_token %}<button class="btn btn-success btn-sm" type="submit">Прийняти</button></form>
-                        <form method="post" action="{% url 'admin_resume_action' resume.pk 'reject' %}">{% csrf_token %}<button class="btn btn-warning btn-sm" type="submit">Відхилити</button></form>
-                        <form method="post" action="{% url 'admin_resume_action' resume.pk 'delete' %}">{% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Видалити</button></form>
+                    <div class="btn-group admin-action-group">
+                        {% if resume.status == 'approved' %}
+                            <button class="btn btn-success btn-sm" disabled>Прийнято</button>
+                        {% else %}
+                            <form class="admin-action-form" method="post" action="{% url 'admin_resume_action' resume.pk 'approve' %}">{% csrf_token %}<button class="btn btn-success btn-sm" type="submit">Прийняти</button></form>
+                        {% endif %}
+
+                        {% if resume.status == 'approved' %}
+                            <button class="btn btn-warning btn-sm" disabled>Відхилити</button>
+                        {% else %}
+                            <form class="admin-action-form" method="post" action="{% url 'admin_resume_action' resume.pk 'reject' %}">{% csrf_token %}<button class="btn btn-warning btn-sm" type="submit">Відхилити</button></form>
+                        {% endif %}
+
+                        {% if resume.is_deleted %}
+                            <form class="admin-action-form" method="post" action="{% url 'admin_resume_action' resume.pk 'restore' %}">{% csrf_token %}<button class="btn btn-secondary btn-sm" type="submit">Відновити</button></form>
+                            <form class="admin-action-form" method="post" action="{% url 'admin_resume_action' resume.pk 'delete' %}">{% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Видалити назавжди</button></form>
+                        {% else %}
+                            <form class="admin-action-form" method="post" action="{% url 'admin_resume_action' resume.pk 'delete' %}">{% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Архівувати</button></form>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -33,4 +49,16 @@
     </div>
     {% endfor %}
 </div>
+    <script>
+    // disable admin buttons after one click to avoid duplicate submissions
+    document.addEventListener('DOMContentLoaded', function(){
+        document.querySelectorAll('.admin-action-form').forEach(function(form){
+            form.addEventListener('submit', function(){
+                form.querySelectorAll('button').forEach(function(btn){
+                    btn.disabled = true;
+                });
+            });
+        });
+    });
+    </script>
 {% endblock %}

@@ -2,23 +2,97 @@
 {% block content %}
 <h2>Оголошення та новини</h2>
 <p class="text-muted">Найсвіжіші новини від адміністратора.</p>
-<div class="row g-3">
-    {% for item in items %}
-    <div class="col-12">
-        <div class="card shadow-sm">
+<div id="news-container">
+    <div id="news-feed">
+        {% for item in items %}
+        <div class="card shadow-sm mb-3 news-item" data-id="{{ item.pk }}">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title mb-0">{{ item.title }}</h5>
-                    <small class="text-muted">{{ item.created_at|date:"d.m.Y H:i" }}</small>
+                    <div>
+                        <h5 class="card-title mb-0">{{ item.title }}</h5>
+                        <small class="text-muted">{{ item.created_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    {% if request.user.is_authenticated and request.user.is_superuser %}
+                    <div class="btn-group">
+                        <a href="{% url 'edit_news' item.pk %}" class="btn btn-sm btn-outline-primary">Редагувати</a>
+                        <form method="post" action="{% url 'delete_news' item.pk %}" style="display:inline" onsubmit="return confirm('Ви впевнені, що хочете видалити цю новину?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Видалити</button></form>
+                    </div>
+                    {% endif %}
                 </div>
-                <p class="card-text mb-0">{{ item.content }}</p>
+                <p class="card-text mb-1">{{ item.content }}</p>
+                {% if item.image %}
+                <div><img src="{{ item.image.url }}" alt="img" class="img-fluid mt-2" style="max-height:300px;"></div>
+                {% endif %}
             </div>
         </div>
-    </div>
-    {% empty %}
-    <div class="col-12">
+        {% empty %}
         <div class="alert alert-secondary">Новин поки немає.</div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
+    {% if form %}
+    <hr>
+    <h4>Додати новину</h4>
+    <form method="post" action="{% url 'create_news' %}" enctype="multipart/form-data" id="news-form">
+        {% csrf_token %}
+        <div class="mb-2">
+            <input class="form-control" name="title" placeholder="Заголовок" required>
+        </div>
+        <div class="mb-2">
+            <textarea class="form-control" name="content" rows="3" placeholder="Текст новини" required></textarea>
+        </div>
+        <div class="mb-2">
+            <input type="file" id="news-image" name="image" accept="image/*" style="display:none">
+            <div class="d-flex align-items-center">
+                <button type="button" class="btn btn-outline-secondary me-2" id="news-image-btn">Виберіть файл</button>
+                <span id="news-image-filename" class="text-muted">Файл не вибрано</span>
+            </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Опублікувати</button>
+    </form>
+    {% endif %}
 </div>
+
+<script>
+// Polling for new news every 5 seconds
+async function fetchNews(){
+    try{
+        const res = await fetch('{% url "news_json" %}');
+        if(!res.ok) return;
+        const data = await res.json();
+        const feed = document.getElementById('news-feed');
+        const existing = new Set(Array.from(document.querySelectorAll('.news-item')).map(el=>el.dataset.id));
+        data.items.forEach(function(item){
+            if(!existing.has(String(item.id))){
+                const div = document.createElement('div');
+                div.className = 'card shadow-sm mb-3 news-item';
+                div.dataset.id = item.id;
+                let imgHtml = '';
+                if(item.image_url){ imgHtml = `<div><img src="${item.image_url}" class="img-fluid mt-2" style="max-height:300px;"></div>`; }
+                div.innerHTML = `<div class="card-body"><div class="d-flex justify-content-between align-items-start mb-2"><h5 class="card-title mb-0">${item.title}</h5><small class="text-muted">${new Date(item.created_at).toLocaleString()}</small></div><p class="card-text mb-1">${item.content}</p>${imgHtml}</div>`;
+                feed.insertBefore(div, feed.firstChild);
+            }
+        });
+    }catch(e){ console.error(e); }
+}
+setInterval(fetchNews, 5000);
+</script>
+<script>
+// Custom file picker localization for news form
+document.addEventListener('DOMContentLoaded', function(){
+    var fileInput = document.getElementById('news-image');
+    var btn = document.getElementById('news-image-btn');
+    var label = document.getElementById('news-image-filename');
+    if(btn && fileInput && label){
+        btn.addEventListener('click', function(){ fileInput.click(); });
+        fileInput.addEventListener('change', function(){
+            if(fileInput.files && fileInput.files.length > 0){
+                label.textContent = fileInput.files[0].name;
+            } else {
+                label.textContent = 'Файл не вибрано';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

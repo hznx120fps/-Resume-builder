@@ -3,11 +3,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import IntegrityError
 from django.shortcuts import redirect, render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
-from .forms import RegisterForm, ProfileForm, ResumeForm
+from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm
 from .models import Profile, Resume, NewsItem
+from datetime import timedelta
 
 
 def home(request):
@@ -75,7 +77,7 @@ def profile_list(request):
 
 @login_required
 def resume_list(request):
-    resumes = Resume.objects.filter(user=request.user).order_by('-updated_at')
+    resumes = Resume.objects.filter(user=request.user, is_deleted=False).order_by('-updated_at')
     return render(request, 'resume_list.html', {'resumes': resumes})
 
 
@@ -98,7 +100,7 @@ def resume_create(request):
 
 @login_required
 def resume_detail(request, pk):
-    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    resume = get_object_or_404(Resume, pk=pk, user=request.user, is_deleted=False)
     return render(request, 'resume_detail.html', {'resume': resume})
 
 
@@ -119,7 +121,8 @@ def resume_edit(request, pk):
 def resume_delete(request, pk):
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
     if request.method == 'POST':
-        resume.delete()
+        resume.is_deleted = True
+        resume.save()
         return redirect('resume_list')
     return render(request, 'resume_confirm_delete.html', {'resume': resume})
 
@@ -135,7 +138,62 @@ def export_resume(request, pk):
 
 def news_list(request):
     items = NewsItem.objects.order_by('-created_at')
-    return render(request, 'news.html', {'items': items})
+    form = None
+    if request.user.is_authenticated and request.user.is_superuser:
+        form = NewsForm()
+    return render(request, 'news.html', {'items': items, 'form': form})
+
+
+@user_passes_test(lambda user: user.is_superuser)
+@require_POST
+def create_news(request):
+    form = NewsForm(request.POST, request.FILES)
+    if form.is_valid():
+        news = form.save(commit=False)
+        news.author = request.user
+        news.save()
+        messages.success(request, 'Новина додана')
+    else:
+        messages.error(request, 'Помилка при додаванні новини')
+    return redirect('news_list')
+
+
+def news_json(request):
+    items = NewsItem.objects.order_by('-created_at')[:20]
+    data = []
+    for it in items:
+        data.append({
+            'id': it.pk,
+            'title': it.title,
+            'content': it.content,
+            'created_at': it.created_at.isoformat(),
+            'image_url': it.image.url if it.image else None,
+            'author': it.author.username if it.author else None,
+        })
+    return JsonResponse({'items': data})
+
+
+@user_passes_test(lambda user: user.is_superuser)
+def edit_news(request, pk):
+    news = get_object_or_404(NewsItem, pk=pk)
+    if request.method == 'POST':
+        form = NewsForm(request.POST, request.FILES, instance=news)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Новина оновлена')
+            return redirect('news_list')
+    else:
+        form = NewsForm(instance=news)
+    return render(request, 'news_edit.html', {'form': form, 'news': news})
+
+
+@user_passes_test(lambda user: user.is_superuser)
+@require_POST
+def delete_news(request, pk):
+    news = get_object_or_404(NewsItem, pk=pk)
+    news.delete()
+    messages.success(request, 'Новина видалена')
+    return redirect('news_list')
 
 
 @login_required
@@ -151,6 +209,9 @@ def choose_template(request, slug):
 @user_passes_test(lambda user: user.is_superuser)
 def custom_admin_dashboard(request):
     resumes = Resume.objects.order_by('-updated_at')
+    # compute online users in last 5 minutes
+    cutoff = timezone.now() - timedelta(minutes=5)
+    online_count = Profile.objects.filter(last_seen__gte=cutoff).count()
     return render(request, 'custom_admin.html', {'resumes': resumes})
 
 
@@ -158,25 +219,120 @@ def custom_admin_dashboard(request):
 @require_POST
 def admin_resume_action(request, pk, action):
     resume = get_object_or_404(Resume, pk=pk)
+    # idempotent server-side handling: if already in target state, do nothing
     if action == 'approve':
-        resume.status = 'approved'
-        resume.is_public = True
-    elif action == 'reject':
-        resume.status = 'rejected'
-        resume.is_public = False
-    elif action == 'delete':
-        resume.delete()
-        messages.success(request, 'Резюме видалено')
-        return redirect('custom_admin_dashboard')
-    else:
+        if resume.status != 'approved':
+            resume.status = 'approved'
+            resume.is_public = True
+            resume.save()
+            messages.success(request, 'Резюме прийнято')
+        else:
+            messages.info(request, 'Резюме вже прийнято')
         return redirect('custom_admin_dashboard')
 
-    resume.save()
-    messages.success(request, 'Статус резюме оновлено')
+    if action == 'reject':
+        if resume.status != 'rejected':
+            resume.status = 'rejected'
+            resume.is_public = False
+            resume.save()
+            messages.success(request, 'Резюме відхилено')
+        else:
+            messages.info(request, 'Резюме вже відхилено')
+        return redirect('custom_admin_dashboard')
+
+    if action == 'delete':
+        # if already archived, perform hard delete; otherwise archive (soft-delete)
+        if resume.is_deleted:
+            resume.delete()
+            messages.success(request, 'Резюме видалено назавжди')
+        else:
+            resume.is_deleted = True
+            resume.save()
+            messages.success(request, 'Резюме переміщено в архів')
+        return redirect('custom_admin_dashboard')
+
+    if action == 'restore':
+        if resume.is_deleted:
+            resume.is_deleted = False
+            resume.save()
+            messages.success(request, 'Резюме відновлено')
+        else:
+            messages.info(request, 'Резюме не в архіві')
+        return redirect('custom_admin_dashboard')
+
     return redirect('custom_admin_dashboard')
+
+
+@user_passes_test(lambda user: user.is_superuser)
+def admin_resume_detail(request, pk):
+    resume = get_object_or_404(Resume, pk=pk)
+    # also show other resumes from the same user
+    others = Resume.objects.filter(user=resume.user).exclude(pk=resume.pk).order_by('-updated_at')
+    return render(request, 'admin_resume_detail.html', {'resume': resume, 'others': others})
 
 
 @user_passes_test(lambda user: user.is_superuser)
 def admin_resumes(request):
     resumes = Resume.objects.order_by('-updated_at')
     return render(request, 'admin_resumes.html', {'resumes': resumes})
+
+
+@user_passes_test(lambda user: user.is_superuser)
+def admin_online_users(request):
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(minutes=5)
+    profiles = Profile.objects.filter(last_seen__gte=cutoff).select_related('user').order_by('-last_seen')
+    return render(request, 'admin_online.html', {'profiles': profiles, 'cutoff': cutoff})
+
+
+@user_passes_test(lambda user: user.is_superuser)
+def admin_profile_detail(request, pk):
+    """Admin view: inspect a user's profile and their resumes."""
+    profile = get_object_or_404(Profile, pk=pk)
+    resumes = Resume.objects.filter(user=profile.user).order_by('-updated_at')
+    return render(request, 'admin_profile_detail.html', {'profile': profile, 'resumes': resumes})
+
+
+def profile_view(request, username):
+    """Public (or user) view of a profile. Shows public resumes only."""
+    profile = get_object_or_404(Profile, user__username=username)
+    resumes = Resume.objects.filter(user=profile.user, is_public=True, is_deleted=False).order_by('-updated_at')
+    return render(request, 'profile_view.html', {'profile': profile, 'resumes': resumes})
+
+
+def resume_public_detail(request, pk):
+    """Public view of a resume that has been approved/published by admin."""
+    resume = get_object_or_404(Resume, pk=pk, is_public=True, is_deleted=False)
+    return render(request, 'resume_detail.html', {'resume': resume})
+
+
+@login_required
+def resume_archived(request):
+    """List archived resumes for the current user with restore/delete actions."""
+    resumes = Resume.objects.filter(user=request.user, is_deleted=True).order_by('-updated_at')
+    return render(request, 'resume_archived.html', {'resumes': resumes})
+
+
+@login_required
+@require_POST
+def resume_restore(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    if resume.is_deleted:
+        resume.is_deleted = False
+        resume.save()
+        messages.success(request, 'Резюме відновлено')
+    else:
+        messages.info(request, 'Резюме не у архіві')
+    return redirect('resume_archived')
+
+
+@login_required
+@require_POST
+def resume_permanent_delete(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    if resume.is_deleted:
+        resume.delete()
+        messages.success(request, 'Резюме видалено назавжди')
+    else:
+        messages.error(request, 'Спочатку помістіть резюме в архів')
+    return redirect('resume_archived')

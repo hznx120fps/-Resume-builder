@@ -4,6 +4,9 @@
     <h2>Мої резюме</h2>
     <a class="btn btn-success" href="{% url 'resume_create' %}">+ Створити</a>
 </div>
+<div class="mb-3">
+    <a class="btn btn-outline-secondary" href="{% url 'resume_archived' %}">Архівовані резюме</a>
+</div>
 <div class="row g-3">
     {% for resume in resumes %}
     <div class="col-12">

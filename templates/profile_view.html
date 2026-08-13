@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-4">
+      <h3>{{ profile.full_name }}</h3>
+      {% if profile.photo %}
+        <img src="{{ profile.photo.url }}" class="img-fluid rounded" alt="Фото">
+      {% else %}
+        <div class="border rounded p-4 text-center">Немає фото</div>
+      {% endif %}
+      <p class="mt-2"><strong>Користувач:</strong> {{ profile.user.username }}</p>
+    </div>
+    <div class="col-md-8">
+      <h4>Опубліковані резюме</h4>
+      {% if resumes %}
+        <ul class="list-group">
+          {% for r in resumes %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ r.title }}</strong>
+                <div class="text-muted small">Оновлено: {{ r.updated_at }}</div>
+              </div>
+              <a href="{% url 'resume_public_detail' r.pk %}" class="btn btn-sm btn-primary">Переглянути</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Немає опублікованих резюме.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

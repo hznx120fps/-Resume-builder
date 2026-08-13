@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Архівовані резюме</h2>
+    <a class="btn btn-secondary" href="{% url 'resume_list' %}">Назад до моїх резюме</a>
+</div>
+
+{% if resumes %}
+  <div class="list-group">
+    {% for r in resumes %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ r.title }}</strong>
+          <div class="small text-muted">Оновлено: {{ r.updated_at }}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <form method="post" action="{% url 'resume_restore' r.pk %}">{% csrf_token %}
+            <button class="btn btn-sm btn-outline-success" type="submit">Відновити</button>
+          </form>
+          <form method="post" action="{% url 'resume_permanent_delete' r.pk %}" onsubmit="return confirm('Впевнені? Резюме буде видалено назавжди.');">{% csrf_token %}
+            <button class="btn btn-sm btn-danger" type="submit">Видалити назавжди</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-secondary">У вас немає архівованих резюме.</div>
+{% endif %}
+
+{% endblock %}

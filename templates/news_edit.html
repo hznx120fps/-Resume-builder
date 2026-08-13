@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Редагувати новину</h2>
+  <form method="post" action="" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+      <input class="form-control" name="title" value="{{ form.instance.title }}" required>
+    </div>
+    <div class="mb-3">
+      <textarea class="form-control" name="content" rows="4" required>{{ form.instance.content }}</textarea>
+    </div>
+    <div class="mb-3">
+      <input type="file" id="news-image" name="image" accept="image/*" style="display:none">
+      <div class="d-flex align-items-center">
+        <button type="button" class="btn btn-outline-secondary me-2" id="news-image-btn">Виберіть файл</button>
+        <span id="news-image-filename" class="text-muted">{% if form.instance.image %}{{ form.instance.image.name|basename }}{% else %}Файл не вибрано{% endif %}</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Зберегти</button>
+    <a class="btn btn-secondary" href="{% url 'news_list' %}">Скасувати</a>
+  </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var fileInput = document.getElementById('news-image');
+  var btn = document.getElementById('news-image-btn');
+  var label = document.getElementById('news-image-filename');
+  if(btn && fileInput && label){
+    btn.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function(){
+      if(fileInput.files && fileInput.files.length > 0){
+        label.textContent = fileInput.files[0].name;
+      } else {
+        label.textContent = 'Файл не вибрано';
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
