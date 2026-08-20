@@ -1,0 +1,108 @@
+html {
+    overflow-x: hidden;
+}
+
+body {
+    min-width: 320px;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.navbar-brand {
+    white-space: normal;
+}
+
+.card,
+.list-group-item {
+    overflow-wrap: anywhere;
+}
+
+textarea,
+input,
+select,
+.form-control {
+    max-width: 100%;
+}
+
+@media (max-width: 991.98px) {
+    .navbar-nav {
+        padding-top: .5rem;
+    }
+
+    .navbar-nav .nav-link {
+        padding: .65rem 0;
+    }
+
+    .navbar-nav.align-items-center {
+        align-items: flex-start !important;
+        border-top: 1px solid rgba(255, 255, 255, .15);
+        margin-top: .5rem;
+        padding-top: .5rem;
+    }
+
+    .navbar-nav.align-items-center .nav-item {
+        margin-bottom: .25rem;
+    }
+
+    .btn-group {
+        flex-wrap: wrap;
+        gap: .35rem;
+    }
+
+    .btn-group > .btn,
+    .btn-group > form {
+        border-radius: .375rem !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .py-4 {
+        padding-top: 1.25rem !important;
+        padding-bottom: 1.25rem !important;
+    }
+
+    h1.display-5 {
+        font-size: 2rem;
+    }
+
+    .d-flex.justify-content-between,
+    .list-group-item.d-flex {
+        align-items: stretch !important;
+        flex-direction: column;
+        gap: .75rem;
+    }
+
+    .d-flex.justify-content-between > .btn,
+    .list-group-item.d-flex > div:last-child,
+    .admin-action-group {
+        width: 100%;
+    }
+
+    .admin-action-group form,
+    .admin-action-group button,
+    .list-group-item.d-flex > div:last-child .btn,
+    .list-group-item.d-flex > div:last-child form {
+        width: 100%;
+    }
+
+    .row > [class*="col-"] {
+        min-width: 0;
+    }
+
+    .news-item .btn-group {
+        width: 100%;
+    }
+
+    .news-item .btn-group .btn,
+    .news-item .btn-group form {
+        flex: 1 1 100%;
+    }
+}
