@@ -12,7 +12,7 @@
                         <h5 class="card-title mb-0">{{ item.title }}</h5>
                         <small class="text-muted">{{ item.created_at|date:"d.m.Y H:i" }}</small>
                     </div>
-                    {% if request.user.is_authenticated and request.user.is_superuser %}
+                    {% if request.user.is_authenticated and request.user.is_staff %}
                     <div class="btn-group">
                         <a href="{% url 'edit_news' item.pk %}" class="btn btn-sm btn-outline-primary">Редагувати</a>
                         <form method="post" action="{% url 'delete_news' item.pk %}" style="display:inline" onsubmit="return confirm('Ви впевнені, що хочете видалити цю новину?');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Видалити</button></form>
@@ -20,6 +20,9 @@
                     {% endif %}
                 </div>
                 <p class="card-text mb-1">{{ item.content }}</p>
+                {% if item.author %}
+                <div class="small text-muted">Автор: <a href="{% url 'profile_view' item.author.username %}">{{ item.author.username }}</a></div>
+                {% endif %}
                 {% if item.image %}
                 <div><img src="{{ item.image.url }}" alt="img" class="img-fluid mt-2" style="max-height:300px;"></div>
                 {% endif %}
@@ -29,6 +32,7 @@
         <div class="alert alert-secondary">Новин поки немає.</div>
         {% endfor %}
     </div>
+    <div id="news-sync-status" class="small text-muted mt-2">Синхронізація увімкнена</div>
 
     {% if form %}
     <hr>
@@ -54,25 +58,42 @@
 </div>
 
 <script>
-// Polling for new news every 5 seconds
+// Polling uses the server database, so every device sees the same feed.
+function escapeHtml(value){
+    const div = document.createElement('div');
+    div.textContent = value || '';
+    return div.innerHTML;
+}
+
+function authorHtml(item){
+    if(!item.author) return '';
+    const name = escapeHtml(item.author);
+    return `<div class="small text-muted">Автор: <a href="${item.author_profile_url}">${name}</a></div>`;
+}
+
+function imageHtml(item){
+    return item.image_url ? `<div><img src="${item.image_url}" alt="" class="img-fluid mt-2" style="max-height:300px;"></div>` : '';
+}
+
 async function fetchNews(){
     try{
         const res = await fetch('{% url "news_json" %}');
         if(!res.ok) return;
         const data = await res.json();
         const feed = document.getElementById('news-feed');
-        const existing = new Set(Array.from(document.querySelectorAll('.news-item')).map(el=>el.dataset.id));
+        const existing = new Map(Array.from(document.querySelectorAll('.news-item')).map(el=>[el.dataset.id, el]));
         data.items.forEach(function(item){
-            if(!existing.has(String(item.id))){
-                const div = document.createElement('div');
+            const id = String(item.id);
+            let div = existing.get(id);
+            if(!div){
+                div = document.createElement('div');
                 div.className = 'card shadow-sm mb-3 news-item';
                 div.dataset.id = item.id;
-                let imgHtml = '';
-                if(item.image_url){ imgHtml = `<div><img src="${item.image_url}" class="img-fluid mt-2" style="max-height:300px;"></div>`; }
-                div.innerHTML = `<div class="card-body"><div class="d-flex justify-content-between align-items-start mb-2"><h5 class="card-title mb-0">${item.title}</h5><small class="text-muted">${new Date(item.created_at).toLocaleString()}</small></div><p class="card-text mb-1">${item.content}</p>${imgHtml}</div>`;
                 feed.insertBefore(div, feed.firstChild);
             }
+            div.innerHTML = `<div class="card-body"><div class="d-flex justify-content-between align-items-start mb-2"><h5 class="card-title mb-0">${escapeHtml(item.title)}</h5><small class="text-muted">${new Date(item.created_at).toLocaleString()}</small></div><p class="card-text mb-1">${escapeHtml(item.content)}</p>${authorHtml(item)}${imageHtml(item)}</div>`;
         });
+        document.getElementById('news-sync-status').textContent = `Синхронізовано: ${new Date().toLocaleTimeString()}`;
     }catch(e){ console.error(e); }
 }
 setInterval(fetchNews, 5000);

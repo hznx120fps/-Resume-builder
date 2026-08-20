@@ -43,3 +43,7 @@ class NewsForm(forms.ModelForm):
     class Meta:
         model = NewsItem
         fields = ('title', 'content', 'image')
+
+
+class AdminAccessForm(forms.Form):
+    is_staff = forms.BooleanField(required=False, label='Доступ до кастомної адмін-панелі')

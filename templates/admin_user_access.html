@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Керування адміністраторами</h2>
+  <p class="text-muted">Тільки superuser може видавати або забирати доступ до кастомної адмін-панелі.</p>
+  <div class="list-group">
+    {% for account in users %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ account.username }}</strong>
+          <span class="text-muted ms-2">{{ account.email|default:'Email не вказано' }}</span>
+          <div class="small">
+            {% if account.is_superuser %}Superuser{% elif account.is_staff %}Адміністратор{% else %}Користувач{% endif %}
+          </div>
+        </div>
+        {% if account.is_superuser %}
+          <button class="btn btn-sm btn-secondary" disabled>Superuser</button>
+        {% else %}
+          <form method="post" action="{% url 'admin_user_access_action' account.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="is_staff" value="{% if account.is_staff %}0{% else %}1{% endif %}">
+            <button class="btn btn-sm {% if account.is_staff %}btn-outline-danger{% else %}btn-outline-success{% endif %}" type="submit">
+              {% if account.is_staff %}Забрати адмінку{% else %}Видати адмінку{% endif %}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="alert alert-secondary">Користувачів немає.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

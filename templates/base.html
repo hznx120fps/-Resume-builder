@@ -17,7 +17,7 @@
                 {% if user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'resume_list' %}">Мої резюме</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'profile_list' %}">Профіль</a></li>
-                {% if user.is_superuser %}
+                {% if user.is_staff %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'custom_admin_dashboard' %}">Адмін панель</a></li>
                 {% endif %}
                 {% endif %}

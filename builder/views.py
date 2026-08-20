@@ -1,13 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import IntegrityError
 from django.shortcuts import redirect, render, get_object_or_404
+from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
-from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm
+from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm, AdminAccessForm
 from .models import Profile, Resume, NewsItem
 from datetime import timedelta
 
@@ -139,12 +141,12 @@ def export_resume(request, pk):
 def news_list(request):
     items = NewsItem.objects.order_by('-created_at')
     form = None
-    if request.user.is_authenticated and request.user.is_superuser:
+    if request.user.is_authenticated and request.user.is_staff:
         form = NewsForm()
     return render(request, 'news.html', {'items': items, 'form': form})
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 @require_POST
 def create_news(request):
     form = NewsForm(request.POST, request.FILES)
@@ -169,11 +171,12 @@ def news_json(request):
             'created_at': it.created_at.isoformat(),
             'image_url': it.image.url if it.image else None,
             'author': it.author.username if it.author else None,
+            'author_profile_url': reverse('profile_view', args=[it.author.username]) if it.author else None,
         })
     return JsonResponse({'items': data})
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 def edit_news(request, pk):
     news = get_object_or_404(NewsItem, pk=pk)
     if request.method == 'POST':
@@ -187,7 +190,7 @@ def edit_news(request, pk):
     return render(request, 'news_edit.html', {'form': form, 'news': news})
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 @require_POST
 def delete_news(request, pk):
     news = get_object_or_404(NewsItem, pk=pk)
@@ -206,7 +209,7 @@ def choose_template(request, slug):
     return redirect('resume_create')
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 def custom_admin_dashboard(request):
     resumes = Resume.objects.order_by('-updated_at')
     # compute online users in last 5 minutes
@@ -215,7 +218,7 @@ def custom_admin_dashboard(request):
     return render(request, 'custom_admin.html', {'resumes': resumes})
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 @require_POST
 def admin_resume_action(request, pk, action):
     resume = get_object_or_404(Resume, pk=pk)
@@ -263,7 +266,7 @@ def admin_resume_action(request, pk, action):
     return redirect('custom_admin_dashboard')
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 def admin_resume_detail(request, pk):
     resume = get_object_or_404(Resume, pk=pk)
     # also show other resumes from the same user
@@ -271,13 +274,13 @@ def admin_resume_detail(request, pk):
     return render(request, 'admin_resume_detail.html', {'resume': resume, 'others': others})
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 def admin_resumes(request):
     resumes = Resume.objects.order_by('-updated_at')
     return render(request, 'admin_resumes.html', {'resumes': resumes})
 
 
-@user_passes_test(lambda user: user.is_superuser)
+@user_passes_test(lambda user: user.is_staff)
 def admin_online_users(request):
     from datetime import timedelta
     cutoff = timezone.now() - timedelta(minutes=5)
@@ -286,6 +289,25 @@ def admin_online_users(request):
 
 
 @user_passes_test(lambda user: user.is_superuser)
+def admin_user_access(request):
+    users = User.objects.order_by('username')
+    return render(request, 'admin_user_access.html', {'users': users})
+
+
+@user_passes_test(lambda user: user.is_superuser)
+@require_POST
+def admin_user_access_action(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    if user == request.user:
+        messages.info(request, 'Не можна забрати доступ у поточного superuser')
+    else:
+        user.is_staff = request.POST.get('is_staff') == '1'
+        user.save(update_fields=['is_staff'])
+        messages.success(request, f'Доступ для {user.username} оновлено')
+    return redirect('admin_user_access')
+
+
+@user_passes_test(lambda user: user.is_staff)
 def admin_profile_detail(request, pk):
     """Admin view: inspect a user's profile and their resumes."""
     profile = get_object_or_404(Profile, pk=pk)
