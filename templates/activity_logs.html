@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2>Журнал активності</h2>
+      <p class="text-muted mb-0">Входи пользователей и действия с новостями.</p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'custom_admin_dashboard' %}">Назад</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Опис</th></tr></thead>
+      <tbody>
+      {% for log in logs %}
+        <tr>
+          <td>{{ log.created_at|date:'d.m.Y H:i:s' }}</td>
+          <td>{% if log.user %}<a href="{% url 'profile_view' log.user.username %}">{{ log.user.username }}</a>{% else %}Система{% endif %}</td>
+          <td>{{ log.get_event_type_display }}</td>
+          <td>{{ log.message }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Журнал поки порожній.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

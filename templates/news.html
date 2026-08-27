@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Оголошення та новини</h2>
-<p class="text-muted">Найсвіжіші новини від адміністратора.</p>
+<div class="d-flex justify-content-between align-items-center news-heading">
+    <div>
+        <h2>Оголошення та новини</h2>
+        <p class="text-muted mb-0">Внутрішня стрічка оновлень проєкту.</p>
+    </div>
+    <span class="live-badge"><span></span> LIVE</span>
+</div>
 <div id="news-container">
     <div id="news-feed">
         {% for item in items %}
@@ -11,6 +16,7 @@
                     <div>
                         <h5 class="card-title mb-0">{{ item.title }}</h5>
                         <small class="text-muted">{{ item.created_at|date:"d.m.Y H:i" }}</small>
+                        <span class="badge bg-light text-dark">{{ item.get_category_display }}</span>
                     </div>
                     {% if request.user.is_authenticated and request.user.is_staff %}
                     <div class="btn-group">
@@ -19,6 +25,8 @@
                     </div>
                     {% endif %}
                 </div>
+                {% if item.is_pinned %}<div class="small text-danger mb-2">Закріплено</div>{% endif %}
+                <a class="stretched-link" href="{% url 'news_detail' item.pk %}"></a>
                 <p class="card-text mb-1">{{ item.content }}</p>
                 {% if item.author %}
                 <div class="small text-muted">Автор: <a href="{% url 'profile_view' item.author.username %}">{{ item.author.username }}</a></div>
@@ -32,6 +40,11 @@
         <div class="alert alert-secondary">Новин поки немає.</div>
         {% endfor %}
     </div>
+    <form class="news-filters row g-2 mb-4" method="get">
+        <div class="col-md-6"><input class="form-control" name="q" value="{{ query }}" placeholder="Пошук новин"></div>
+        <div class="col-md-4"><select class="form-select" name="category"><option value="">Усі категорії</option>{% for value, label in categories %}<option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Знайти</button></div>
+    </form>
     <div id="news-sync-status" class="small text-muted mt-2">Синхронізація увімкнена</div>
 
     {% if form %}
@@ -45,6 +58,7 @@
         <div class="mb-2">
             <textarea class="form-control" name="content" rows="3" placeholder="Текст новини" required></textarea>
         </div>
+        <div class="row g-2 mb-2"><div class="col-md-5">{{ form.category }}</div><div class="col-md-4">{{ form.status }}</div><div class="col-md-3 form-check mt-2">{{ form.is_pinned }} <label for="id_is_pinned">Закріпити</label></div></div>
         <div class="mb-2">
             <input type="file" id="news-image" name="image" accept="image/*" style="display:none">
             <div class="d-flex align-items-center">
@@ -55,6 +69,7 @@
         <button class="btn btn-primary" type="submit">Опублікувати</button>
     </form>
     {% endif %}
+    {% if page_obj.has_other_pages %}<nav class="mt-4"><ul class="pagination">{% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?q={{ query }}&category={{ selected_category }}&page={{ page_obj.previous_page_number }}">Назад</a></li>{% endif %}<li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>{% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?q={{ query }}&category={{ selected_category }}&page={{ page_obj.next_page_number }}">Далі</a></li>{% endif %}</ul></nav>{% endif %}
 </div>
 
 <script>

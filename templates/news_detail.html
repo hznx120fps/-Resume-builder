@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<article class="news-detail">
+  <a href="{% url 'news_list' %}">← До новин</a>
+  <p class="text-muted mt-3">{{ item.get_category_display }} · {{ item.created_at|date:"d.m.Y H:i" }}{% if item.updated_at != item.created_at %} · змінено {{ item.updated_at|date:"d.m.Y H:i" }}{% endif %}</p>
+  <h1>{{ item.title }}</h1>
+  {% if item.image %}<img src="{{ item.image.url }}" alt="" class="img-fluid rounded my-3">{% endif %}
+  <div class="news-content">{{ item.content|linebreaks }}</div>
+  {% if item.author %}<p class="text-muted">Автор: <a href="{% url 'profile_view' item.author.username %}">{{ item.author.username }}</a></p>{% else %}<p class="text-muted">Автор: Система</p>{% endif %}
+</article>
+{% endblock %}

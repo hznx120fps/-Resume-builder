@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Profile, Resume, NewsItem
+from .models import Profile, Resume, NewsItem, ActivityLog
 
 
 @admin.register(Profile)
@@ -20,3 +20,11 @@ class ResumeAdmin(admin.ModelAdmin):
 class NewsItemAdmin(admin.ModelAdmin):
     list_display = ('title', 'created_at')
     search_fields = ('title', 'content')
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'user', 'event_type', 'message')
+    list_filter = ('event_type', 'created_at')
+    search_fields = ('user__username', 'message')
+    readonly_fields = ('created_at', 'user', 'event_type', 'message')

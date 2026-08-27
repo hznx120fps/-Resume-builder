@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="settings-page">
+    <div class="mb-4">
+        <p class="text-uppercase small text-muted mb-1">Персоналізація</p>
+        <h2>Налаштування</h2>
+        <p class="text-muted">Оформлення збережеться для вашого акаунта на всіх пристроях.</p>
+    </div>
+    <form method="post" class="settings-form">
+        {% csrf_token %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4>Зовнішній вигляд</h4>
+                <div class="mb-3">
+                    <label for="id_theme" class="form-label">Тема</label>
+                    {{ form.theme }}
+                </div>
+                <div class="mb-3">
+                    <label for="id_primary_color" class="form-label">Основний колір</label>
+                    <div class="d-flex align-items-center gap-2">
+                        {{ form.primary_color }}
+                        <span class="text-muted">Використовується для кнопок і посилань</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="id_accent_color" class="form-label">Колір акценту</label>
+                    {{ form.accent_color }}
+                </div>
+                <div class="mb-3">
+                    <label for="id_background_color" class="form-label">Колір фону</label>
+                    {{ form.background_color }}
+                </div>
+                <div class="mb-3">
+                    <label for="id_secondary_color" class="form-label">Другий колір градієнта</label>
+                    <div class="d-flex align-items-center gap-2">
+                        {{ form.secondary_color }}
+                        <span class="text-muted">Використовується, коли градієнт увімкнено</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="id_gradient_direction" class="form-label">Напрямок градієнта</label>
+                    <select class="form-select" id="id_gradient_direction" name="gradient_direction">
+                        {% for direction in form.gradient_direction.field.choices %}
+                        <option value="{{ direction.0 }}" {% if form.gradient_direction.value == direction.0 %}selected{% endif %}>{{ direction.1|default:direction.0 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <span class="form-label d-block">Готові палітри</span>
+                    <div class="palette-presets" aria-label="Готові палітри">
+                        <button type="button" class="palette-swatch" data-primary="#0d6efd" data-secondary="#6f42c1" style="--swatch-primary:#0d6efd;--swatch-secondary:#6f42c1" aria-label="Синя палітра"></button>
+                        <button type="button" class="palette-swatch" data-primary="#198754" data-secondary="#20c997" style="--swatch-primary:#198754;--swatch-secondary:#20c997" aria-label="Зелена палітра"></button>
+                        <button type="button" class="palette-swatch" data-primary="#d63384" data-secondary="#fd7e14" style="--swatch-primary:#d63384;--swatch-secondary:#fd7e14" aria-label="Рожева палітра"></button>
+                        <button type="button" class="palette-swatch" data-primary="#0dcaf0" data-secondary="#6610f2" style="--swatch-primary:#0dcaf0;--swatch-secondary:#6610f2" aria-label="Блакитна палітра"></button>
+                    </div>
+                </div>
+                <div class="form-check mb-4">
+                    {{ form.gradient_enabled }}
+                    <label for="id_gradient_enabled" class="form-check-label">Увімкнути градієнт фону</label>
+                </div>
+                <button class="btn btn-outline-primary mb-3" type="button" id="settings-theme-toggle">Змінити тему</button>
+                <button class="btn btn-primary" type="submit">Зберегти налаштування</button>
+            </div>
+        </div>
+    </form>
+    <div class="card shadow-sm mt-4 settings-preview" id="settings-preview">
+        <div class="card-body"><h4>Preview</h4><p>Так виглядатиме ваш сайт.</p><button class="btn btn-primary">Приклад кнопки</button></div>
+    </div>
+    <button class="btn btn-outline-danger mt-3" type="button" id="reset-settings">Скинути налаштування</button>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const themeField = document.getElementById('id_theme');
+        const themeToggle = document.getElementById('settings-theme-toggle');
+        const primary = document.getElementById('id_primary_color');
+        const secondary = document.getElementById('id_secondary_color');
+        const accent = document.getElementById('id_accent_color');
+        const background = document.getElementById('id_background_color');
+        const direction = document.getElementById('id_gradient_direction');
+        const gradient = document.getElementById('id_gradient_enabled');
+        const preview = document.getElementById('settings-preview');
+
+        function updatePreview() {
+            document.documentElement.dataset.theme = themeField.value;
+            document.body.style.setProperty('--primary-color', primary.value);
+            document.body.style.setProperty('--secondary-color', secondary.value);
+            document.body.style.setProperty('--accent-color', accent.value);
+            document.body.style.setProperty('--background-color', background.value);
+            document.body.style.setProperty('--gradient-direction', direction.value);
+            document.body.classList.toggle('gradient-enabled', gradient.checked);
+            preview.style.backgroundColor = background.value;
+        }
+
+        function setTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            if (themeField) themeField.value = theme;
+            localStorage.setItem('resume-builder-theme', theme);
+        }
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+                setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+            });
+        }
+        document.querySelectorAll('.palette-swatch').forEach(function (swatch) {
+            swatch.addEventListener('click', function () {
+                primary.value = swatch.dataset.primary;
+                secondary.value = swatch.dataset.secondary;
+                updatePreview();
+            });
+        });
+        [primary, secondary, accent, background, direction, gradient, themeField].forEach(function (field) {
+            if (field) field.addEventListener('input', updatePreview);
+            if (field && field.tagName === 'SELECT') field.addEventListener('change', updatePreview);
+        });
+        document.getElementById('reset-settings').addEventListener('click', function () {
+            themeField.value = 'light'; primary.value = '#0d6efd'; secondary.value = '#6f42c1';
+            accent.value = '#dc3545'; background.value = '#f8f9fa'; direction.value = '135deg'; gradient.checked = true;
+            setTheme('light'); updatePreview();
+        });
+        updatePreview();
+    });
+</script>
+{% endblock %}

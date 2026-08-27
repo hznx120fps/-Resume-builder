@@ -26,6 +26,17 @@ class ProfileForm(forms.ModelForm):
         fields = ('full_name', 'title', 'email', 'phone', 'location', 'bio', 'photo')
 
 
+class AppearanceForm(forms.ModelForm):
+    primary_color = forms.CharField(widget=forms.TextInput(attrs={'type': 'color'}))
+    secondary_color = forms.CharField(widget=forms.TextInput(attrs={'type': 'color'}))
+    accent_color = forms.CharField(widget=forms.TextInput(attrs={'type': 'color'}))
+    background_color = forms.CharField(widget=forms.TextInput(attrs={'type': 'color'}))
+
+    class Meta:
+        model = Profile
+        fields = ('theme', 'primary_color', 'secondary_color', 'accent_color', 'background_color', 'gradient_direction', 'gradient_enabled')
+
+
 class ResumeForm(forms.ModelForm):
     summary = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}))
     experience = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}))
@@ -42,7 +53,7 @@ class NewsForm(forms.ModelForm):
 
     class Meta:
         model = NewsItem
-        fields = ('title', 'content', 'image')
+        fields = ('title', 'content', 'image', 'category', 'status', 'is_pinned')
 
 
 class AdminAccessForm(forms.Form):

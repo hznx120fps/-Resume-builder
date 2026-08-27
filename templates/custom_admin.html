@@ -3,6 +3,7 @@
 <h2>Адмін панель</h2>
 <p class="text-muted">Тут можна переглядати резюме, приймати або відхиляти їх, а також перейти до Django admin.</p>
 <p><a href="{% url 'admin_online_users' %}">Користувачі онлайн</a></p>
+<p><a href="{% url 'activity_logs' %}">Журнал входів і новин</a></p>
 {% if user.is_superuser %}<p><a href="{% url 'admin_user_access' %}">Керування доступом адміністраторів</a></p>{% endif %}
 <div class="mt-4">
     <a class="btn btn-outline-secondary" href="/admin/">Відкрити Django admin</a>

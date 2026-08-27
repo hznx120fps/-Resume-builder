@@ -10,6 +10,8 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
     if origin.strip()
 ]
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.append('https://*.trycloudflare.com')
 
 INSTALLED_APPS = [
     'django.contrib.admin',

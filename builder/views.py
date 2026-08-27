@@ -9,9 +9,25 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
-from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm, AdminAccessForm
-from .models import Profile, Resume, NewsItem
+from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm, AdminAccessForm, AppearanceForm
+from .models import Profile, Resume, NewsItem, ActivityLog
 from datetime import timedelta
+
+
+PROJECT_UPDATES = [
+    ('Оновлено оформлення сайту', 'Додано світлу й темну тему, власний колір та перемикач градієнта.'),
+    ('Покращено мобільну версію', 'Навігація, форми та картки резюме адаптовані для телефонів і планшетів.'),
+    ('Синхронізація новин увімкнена', 'Стрічка оновлюється з серверної бази, тому однаково відображається на різних пристроях.'),
+]
+
+
+def ensure_project_updates():
+    for title, content in PROJECT_UPDATES:
+        NewsItem.objects.get_or_create(title=title, defaults={'content': content, 'status': 'published'})
+
+
+def log_activity(user, event_type, message):
+    ActivityLog.objects.create(user=user, event_type=event_type, message=message)
 
 
 def home(request):
@@ -53,6 +69,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            log_activity(user, 'login', f'Користувач {user.username} увійшов на сайт')
             return redirect('home')
         messages.error(request, 'Невірний логін або пароль')
     return render(request, 'login.html')
@@ -75,6 +92,20 @@ def profile_list(request):
     else:
         form = ProfileForm(instance=profile)
     return render(request, 'profile.html', {'form': form, 'profile': profile})
+
+
+@login_required
+def settings_view(request):
+    profile, _ = Profile.objects.get_or_create(user=request.user, defaults={'full_name': request.user.username})
+    if request.method == 'POST':
+        form = AppearanceForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Налаштування оформлення збережено')
+            return redirect('settings')
+    else:
+        form = AppearanceForm(instance=profile)
+    return render(request, 'settings.html', {'form': form, 'profile': profile})
 
 
 @login_required
@@ -139,11 +170,31 @@ def export_resume(request, pk):
 
 
 def news_list(request):
-    items = NewsItem.objects.order_by('-created_at')
+    ensure_project_updates()
+    items = NewsItem.objects.all()
+    if not (request.user.is_authenticated and request.user.is_staff):
+        items = items.filter(status='published')
+    query = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+    if query:
+        items = items.filter(title__icontains=query) | items.filter(content__icontains=query)
+    if category:
+        items = items.filter(category=category)
+    items = items.order_by('-is_pinned', '-created_at')
+    from django.core.paginator import Paginator
+    page = Paginator(items, 6).get_page(request.GET.get('page'))
     form = None
     if request.user.is_authenticated and request.user.is_staff:
         form = NewsForm()
-    return render(request, 'news.html', {'items': items, 'form': form})
+    return render(request, 'news.html', {
+        'items': page.object_list,
+        'page_obj': page,
+        'form': form,
+        'is_live': True,
+        'query': query,
+        'selected_category': category,
+        'categories': NewsItem.CATEGORY_CHOICES,
+    })
 
 
 @user_passes_test(lambda user: user.is_staff)
@@ -154,6 +205,7 @@ def create_news(request):
         news = form.save(commit=False)
         news.author = request.user
         news.save()
+        log_activity(request.user, 'news_created', f'{request.user.username} створив(ла) новину «{news.title}»')
         messages.success(request, 'Новина додана')
     else:
         messages.error(request, 'Помилка при додаванні новини')
@@ -161,7 +213,7 @@ def create_news(request):
 
 
 def news_json(request):
-    items = NewsItem.objects.order_by('-created_at')[:20]
+    items = NewsItem.objects.filter(status='published').order_by('-is_pinned', '-created_at')[:20]
     data = []
     for it in items:
         data.append({
@@ -172,8 +224,19 @@ def news_json(request):
             'image_url': it.image.url if it.image else None,
             'author': it.author.username if it.author else None,
             'author_profile_url': reverse('profile_view', args=[it.author.username]) if it.author else None,
+            'category': it.get_category_display(),
+            'is_pinned': it.is_pinned,
+            'updated_at': it.updated_at.isoformat(),
         })
     return JsonResponse({'items': data})
+
+
+def news_detail(request, pk):
+    queryset = NewsItem.objects.filter(status='published')
+    if request.user.is_authenticated and request.user.is_staff:
+        queryset = NewsItem.objects.all()
+    item = get_object_or_404(queryset, pk=pk)
+    return render(request, 'news_detail.html', {'item': item})
 
 
 @user_passes_test(lambda user: user.is_staff)
@@ -183,6 +246,7 @@ def edit_news(request, pk):
         form = NewsForm(request.POST, request.FILES, instance=news)
         if form.is_valid():
             form.save()
+            log_activity(request.user, 'news_updated', f'{request.user.username} змінив(ла) новину «{news.title}»')
             messages.success(request, 'Новина оновлена')
             return redirect('news_list')
     else:
@@ -195,6 +259,7 @@ def edit_news(request, pk):
 def delete_news(request, pk):
     news = get_object_or_404(NewsItem, pk=pk)
     news.delete()
+    log_activity(request.user, 'news_deleted', f'{request.user.username} видалив(ла) новину «{news.title}»')
     messages.success(request, 'Новина видалена')
     return redirect('news_list')
 
@@ -216,6 +281,12 @@ def custom_admin_dashboard(request):
     cutoff = timezone.now() - timedelta(minutes=5)
     online_count = Profile.objects.filter(last_seen__gte=cutoff).count()
     return render(request, 'custom_admin.html', {'resumes': resumes})
+
+
+@user_passes_test(lambda user: user.is_staff)
+def activity_logs(request):
+    logs = ActivityLog.objects.select_related('user').all()[:200]
+    return render(request, 'activity_logs.html', {'logs': logs})
 
 
 @user_passes_test(lambda user: user.is_staff)

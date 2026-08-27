@@ -10,6 +10,11 @@
     <div class="mb-3">
       <textarea class="form-control" name="content" rows="4" required>{{ form.instance.content }}</textarea>
     </div>
+    <div class="row g-2 mb-3">
+      <div class="col-md-5">{{ form.category }}</div>
+      <div class="col-md-4">{{ form.status }}</div>
+      <div class="col-md-3 form-check mt-2">{{ form.is_pinned }} <label for="id_is_pinned">Закріпити</label></div>
+    </div>
     <div class="mb-3">
       <input type="file" id="news-image" name="image" accept="image/*" style="display:none">
       <div class="d-flex align-items-center">
