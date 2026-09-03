@@ -71,6 +71,18 @@ class TemplateSelectionTests(TestCase):
         resume = Resume.objects.get(title='Моє резюме')
         self.assertEqual(resume.template_name, 'it')
 
+    def test_resume_can_be_downloaded_as_pdf(self):
+        user = get_user_model().objects.create_user(username='pdfuser', password='Test@1234')
+        resume = Resume.objects.create(user=user, title='Моє резюме', summary='Український текст')
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('export_resume_pdf', args=[resume.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('filename="resume.pdf"', response['Content-Disposition'])
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
 
 class AppearanceAndNewsTests(TestCase):
     def setUp(self):

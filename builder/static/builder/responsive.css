@@ -63,6 +63,12 @@ html[data-theme="dark"] body:not(.gradient-enabled) {
     background-color: #121820;
 }
 
+@media (prefers-color-scheme: dark) {
+    html[data-theme="system"] body:not(.gradient-enabled) {
+        background-color: #121820;
+    }
+}
+
 .card,
 .list-group-item,
 .form-control,

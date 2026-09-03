@@ -8,10 +8,8 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'builder/responsive.css' %}">
     <script>
-        const savedTheme = localStorage.getItem('resume-builder-theme');
-        if (savedTheme === 'dark' || savedTheme === 'light') {
-            document.documentElement.dataset.theme = savedTheme;
-        }
+        const serverTheme = document.documentElement.dataset.theme;
+        document.documentElement.dataset.theme = serverTheme;
     </script>
 </head>
 <body class="{% if user_profile and user_profile.gradient_enabled %}gradient-enabled{% endif %}" style="--primary-color: {% if user_profile %}{{ user_profile.primary_color }}{% else %}#0d6efd{% endif %}; --secondary-color: {% if user_profile %}{{ user_profile.secondary_color }}{% else %}#6f42c1{% endif %}; --accent-color: {% if user_profile %}{{ user_profile.accent_color }}{% else %}#dc3545{% endif %}; --background-color: {% if user_profile and user_profile.theme == 'dark' %}#121820{% elif user_profile %}{{ user_profile.background_color }}{% else %}#f8f9fa{% endif %}; --gradient-direction: {% if user_profile %}{{ user_profile.gradient_direction }}{% else %}135deg{% endif %};">

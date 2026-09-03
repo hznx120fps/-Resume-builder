@@ -31,7 +31,7 @@ class Profile(models.Model):
     accent_color = models.CharField(max_length=7, default='#dc3545')
     background_color = models.CharField(max_length=7, default='#f8f9fa')
     gradient_direction = models.CharField(max_length=30, choices=GRADIENT_DIRECTIONS, default='135deg')
-    gradient_enabled = models.BooleanField(default=True)
+    gradient_enabled = models.BooleanField(default=False)
 
     def __str__(self):
         return self.full_name or self.user.username

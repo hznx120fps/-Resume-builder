@@ -1,15 +1,70 @@
 # Resume Builder
 
+## Відновлення пароля через email
+
+У режимі розробки посилання для відновлення пароля виводиться в терміналі, де запущений Django-сервер. Щоб надсилати листи насправді, налаштуйте SMTP перед запуском сервера.
+
+Для Gmail потрібно створити **App Password** і виконати в PowerShell на Acer:
+
+```powershell
+$env:EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+$env:EMAIL_HOST="smtp.gmail.com"
+$env:EMAIL_PORT="587"
+$env:EMAIL_USE_TLS="True"
+$env:EMAIL_HOST_USER="ваша-пошта@gmail.com"
+$env:EMAIL_HOST_PASSWORD="пароль-додатка-gmail"
+$env:DEFAULT_FROM_EMAIL="ваша-пошта@gmail.com"
+python.exe manage.py runserver 0.0.0.0:8000
+```
+
+Не записуйте пароль пошти у файли проєкту та не надсилайте його в чат.
+
 ## Українська
+
+### Перегляд з телефона або іншого ноутбука через Acer
+
+Сайт потрібно запускати саме на ноутбуці **Acer Aspire 3 A315-35**. Телефон або інший ноутбук лише підключається до Acer через ту саму Wi-Fi мережу.
+
+1. Підключіть Acer і другий пристрій до однієї Wi-Fi мережі.
+2. На Acer відкрийте PowerShell у папці проєкту та запустіть:
+
+```powershell
+python.exe manage.py runserver 0.0.0.0:8000
+```
+
+3. На Acer виконайте команду `ipconfig` і знайдіть його IPv4-адресу, наприклад `192.168.31.133`.
+4. На телефоні або іншому ноутбуці відкрийте адресу `http://192.168.31.133:8000/`, замінивши адресу на IPv4-адресу Acer.
+5. Не закривайте PowerShell, поки переглядаєте сайт.
+
+Якщо сайт не відкривається, дозвольте порт 8000 у Windows Firewall у PowerShell від імені адміністратора:
+
+```powershell
+New-NetFirewallRule -DisplayName "Resume Builder 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow
+```
 
 ### Запуск на Windows
 
-У PowerShell у папці проєкту виконайте:
+Відкрийте PowerShell у папці проєкту та виконайте:
 
 ```powershell
-.venv\Scripts\python.exe manage.py migrate
-.venv\Scripts\python.exe manage.py runserver 0.0.0.0:8000
+python.exe manage.py migrate
+python.exe manage.py runserver 0.0.0.0:8000
 ```
+
+Якщо у вас створено віртуальне середовище `.venv`, замініть `python.exe` у командах на `.venv\Scripts\python.exe`.
+
+Після запуску відкрийте сайт на цьому ноутбуці за адресою:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Щоб відкрити сайт на іншому пристрої, наприклад на MacBook учителя:
+
+1. Підключіть обидва пристрої до тієї самої Wi-Fi мережі.
+2. На ноутбуці виконайте `ipconfig` і знайдіть IPv4-адресу, наприклад `192.168.31.133`.
+3. На MacBook відкрийте `http://192.168.31.133:8000/`.
+4. Не закривайте PowerShell, поки сайт має працювати.
 
 Команда `0.0.0.0:8000` дозволяє підключатися до сервера з інших пристроїв. Її не потрібно вводити в браузері.
 

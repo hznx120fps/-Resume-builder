@@ -8,6 +8,11 @@ from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.conf import settings
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from pathlib import Path
 
 from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm, AdminAccessForm, AppearanceForm
 from .models import Profile, Resume, NewsItem, ActivityLog
@@ -53,7 +58,10 @@ def register_view(request):
                 form.add_error('username', 'Користувач з таким імʼям уже існує')
                 messages.error(request, 'Реєстрація не вдалася. Спробуйте інше імʼя користувача.')
             else:
-                Profile.objects.get_or_create(user=user, defaults={'full_name': user.username})
+                Profile.objects.get_or_create(
+                    user=user,
+                    defaults={'full_name': user.username, 'theme': 'light', 'gradient_enabled': False},
+                )
                 login(request, user)
                 messages.success(request, 'Акаунт створено')
                 return redirect('home')
@@ -166,6 +174,53 @@ def export_resume(request, pk):
     content = f"{resume.title}\n\nКороткий опис:\n{resume.summary or 'Н/Д'}\n\nДосвід:\n{resume.experience or 'Н/Д'}\n\nОсвіта:\n{resume.education or 'Н/Д'}\n\nНавички:\n{resume.skills or 'Н/Д'}"
     response = HttpResponse(content, content_type='text/plain; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="{resume.title}.txt"'
+    return response
+
+
+@login_required
+def export_resume_pdf(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="resume.pdf"'
+
+    font_paths = [
+        settings.BASE_DIR / 'media' / 'DejaVuSans.ttf',
+        settings.BASE_DIR / 'fonts' / 'DejaVuSans.ttf',
+        Path('C:/Windows/Fonts/arial.ttf'),
+    ]
+    font_path = next((path for path in font_paths if path.exists()), None)
+    if font_path:
+        pdfmetrics.registerFont(TTFont('ResumeFont', str(font_path)))
+        font_name = 'ResumeFont'
+    else:
+        font_name = 'Helvetica'
+
+    document = canvas.Canvas(response)
+    document.setTitle(resume.title)
+    document.setFont(font_name, 20)
+    document.drawString(50, 790, resume.title)
+    document.setFont(font_name, 11)
+    y_position = 755
+    sections = [
+        ('Короткий опис', resume.summary),
+        ('Досвід', resume.experience),
+        ('Освіта', resume.education),
+        ('Навички', resume.skills),
+    ]
+    for heading, value in sections:
+        document.setFont(font_name, 13)
+        document.drawString(50, y_position, heading)
+        y_position -= 20
+        document.setFont(font_name, 11)
+        for line in (value or 'Н/Д').splitlines() or ['Н/Д']:
+            document.drawString(60, y_position, line[:110])
+            y_position -= 16
+        y_position -= 12
+        if y_position < 60:
+            document.showPage()
+            document.setFont(font_name, 11)
+            y_position = 790
+    document.save()
     return response
 
 

@@ -16,7 +16,9 @@
                         <input class="form-control" type="password" name="password">
                     </div>
                     <button class="btn btn-primary" type="submit">Увійти</button>
+                    <a class="btn btn-outline-success ms-2" href="{% url 'register' %}">Створити акаунт</a>
                 </form>
+                <a class="d-inline-block mt-3" href="{% url 'password_reset' %}">Забули пароль?</a>
             </div>
         </div>
     </div>

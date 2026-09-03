@@ -30,7 +30,8 @@
         </div>
         <div class="mt-4">
             <a class="btn btn-primary" href="{% url 'resume_edit' resume.pk %}">Редагувати</a>
-            <a class="btn btn-success" href="{% url 'export_resume' resume.pk %}">Експорт DOCX</a>
+            <a class="btn btn-success" href="{% url 'export_resume_pdf' resume.pk %}">Завантажити PDF</a>
+            <a class="btn btn-outline-secondary" href="{% url 'export_resume' resume.pk %}">Завантажити TXT</a>
             <a class="btn btn-outline-danger" href="{% url 'resume_delete' resume.pk %}">Видалити</a>
         </div>
     </div>
