@@ -30,6 +30,13 @@
                 <label for="id_skills" class="form-label">Навички</label>
                 {{ form.skills }}
             </div>
+            <div class="mb-3">
+                <label for="id_custom_sections" class="form-label">Додаткові секції</label>
+                {{ form.custom_sections }}
+                {% if form.custom_sections.help_text %}
+                <div class="form-text">{{ form.custom_sections.help_text }}</div>
+                {% endif %}
+            </div>
             <div class="form-check mb-3">
                 {{ form.is_public }}
                 <label class="form-check-label" for="id_is_public">Публікувати резюме</label>

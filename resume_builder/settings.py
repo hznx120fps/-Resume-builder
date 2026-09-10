@@ -1,6 +1,10 @@
 from pathlib import Path
 import os
 
+from .env_utils import load_environment
+
+load_environment()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'dev-secret-key'
 DEBUG = True

@@ -2,19 +2,24 @@
 
 ## Відновлення пароля через email
 
-У режимі розробки посилання для відновлення пароля виводиться в терміналі, де запущений Django-сервер. Щоб надсилати листи насправді, налаштуйте SMTP перед запуском сервера.
+У режимі розробки посилання для відновлення пароля виводиться в терміналі, де запущений Django-сервер. Щоб надсилати листи насправді, створіть файл `.env` в корені проекту та запишіть туди параметри SMTP.
 
-Для Gmail потрібно створити **App Password** і виконати в PowerShell на Acer:
+Приклад `.env`:
+
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=ваша-пошта@gmail.com
+EMAIL_HOST_PASSWORD=пароль-додатка-gmail
+DEFAULT_FROM_EMAIL=ваша-пошта@gmail.com
+```
+
+Після цього просто запускайте сервер:
 
 ```powershell
-$env:EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
-$env:EMAIL_HOST="smtp.gmail.com"
-$env:EMAIL_PORT="587"
-$env:EMAIL_USE_TLS="True"
-$env:EMAIL_HOST_USER="ваша-пошта@gmail.com"
-$env:EMAIL_HOST_PASSWORD="пароль-додатка-gmail"
-$env:DEFAULT_FROM_EMAIL="ваша-пошта@gmail.com"
-python.exe manage.py runserver 0.0.0.0:8000
+.\.venv\Scripts\python.exe manage.py runserver 0.0.0.0:8000
 ```
 
 Не записуйте пароль пошти у файли проєкту та не надсилайте його в чат.

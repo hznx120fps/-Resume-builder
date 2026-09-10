@@ -50,6 +50,7 @@ class Resume(models.Model):
     experience = models.TextField(blank=True)
     education = models.TextField(blank=True)
     skills = models.TextField(blank=True)
+    custom_sections = models.JSONField(default=list, blank=True)
     template_name = models.CharField(max_length=50, blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(default=timezone.now)
@@ -59,6 +60,19 @@ class Resume(models.Model):
 
     def __str__(self):
         return self.title
+
+    def section_items(self):
+        sections = self.custom_sections or []
+        if isinstance(sections, str):
+            sections = []
+        result = []
+        for item in sections:
+            if isinstance(item, dict):
+                title = (item.get('title') or '').strip()
+                content = (item.get('content') or '').strip()
+                if title or content:
+                    result.append({'title': title or 'Секція', 'content': content})
+        return result
 
 
 class NewsItem(models.Model):

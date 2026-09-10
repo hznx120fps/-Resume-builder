@@ -1,6 +1,11 @@
+import os
+from pathlib import Path
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+
+from resume_builder.env_utils import load_environment
 
 from .models import ActivityLog, NewsItem, Profile, Resume
 
@@ -83,6 +88,38 @@ class TemplateSelectionTests(TestCase):
         self.assertIn('filename="resume.pdf"', response['Content-Disposition'])
         self.assertTrue(response.content.startswith(b'%PDF'))
 
+    def test_resume_can_be_cloned(self):
+        user = get_user_model().objects.create_user(username='cloneuser', password='Test@1234')
+        resume = Resume.objects.create(
+            user=user,
+            title='Основне резюме',
+            summary='Коротко про мене',
+            experience='2 роки роботи',
+            education='Вища освіта',
+            skills='Python, Django',
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(reverse('resume_clone', args=[resume.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        cloned = Resume.objects.filter(user=user, title='Основне резюме (Копія)').first()
+        self.assertIsNotNone(cloned)
+        self.assertEqual(cloned.summary, 'Коротко про мене')
+        self.assertEqual(cloned.skills, 'Python, Django')
+
+    def test_resume_can_be_downloaded_as_docx(self):
+        user = get_user_model().objects.create_user(username='docxuser', password='Test@1234')
+        resume = Resume.objects.create(user=user, title='Резюме для DOCX', summary='Текст для Word')
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('export_resume_docx', args=[resume.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/vnd.openxmlformats-officedocument.wordprocessingml.document', response['Content-Type'])
+        self.assertIn('filename="resume-dlya-docx.docx"', response['Content-Disposition'])
+        self.assertTrue(response.content.startswith(b'PK'))
+
 
 class AppearanceAndNewsTests(TestCase):
     def setUp(self):
@@ -116,3 +153,33 @@ class AppearanceAndNewsTests(TestCase):
         self.assertNotContains(response, 'Hidden')
         self.client.post(reverse('login'), {'username': 'viewer', 'password': 'Test@1234'})
         self.assertTrue(ActivityLog.objects.filter(event_type='login', user=self.user).exists())
+
+
+class EmailEnvTests(TestCase):
+    def test_load_environment_reads_dotenv_file(self):
+        env_path = Path('C:/temp/resume_builder_test_env')
+        env_path.mkdir(parents=True, exist_ok=True)
+        env_file = env_path / '.env'
+        env_file.write_text('EMAIL_HOST=smtp.gmail.com\nEMAIL_PORT=587\n', encoding='utf-8')
+
+        original = os.environ.get('EMAIL_HOST')
+        original_port = os.environ.get('EMAIL_PORT')
+        try:
+            os.environ.pop('EMAIL_HOST', None)
+            os.environ.pop('EMAIL_PORT', None)
+            load_environment(env_path)
+            self.assertEqual(os.environ['EMAIL_HOST'], 'smtp.gmail.com')
+            self.assertEqual(os.environ['EMAIL_PORT'], '587')
+        finally:
+            if original is None:
+                os.environ.pop('EMAIL_HOST', None)
+            else:
+                os.environ['EMAIL_HOST'] = original
+
+            if original_port is None:
+                os.environ.pop('EMAIL_PORT', None)
+            else:
+                os.environ['EMAIL_PORT'] = original_port
+
+            if env_file.exists():
+                env_file.unlink()

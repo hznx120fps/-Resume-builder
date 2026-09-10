@@ -23,6 +23,10 @@
                     <div class="btn-group">
                         <a class="btn btn-outline-primary btn-sm" href="{% url 'resume_detail' resume.pk %}">Перегляд</a>
                         <a class="btn btn-outline-secondary btn-sm" href="{% url 'resume_edit' resume.pk %}">Редагувати</a>
+                        <form method="post" action="{% url 'resume_clone' resume.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-success btn-sm" type="submit">Клонувати</button>
+                        </form>
                         <a class="btn btn-outline-danger btn-sm" href="{% url 'resume_delete' resume.pk %}">Видалити</a>
                     </div>
                 </div>
@@ -30,7 +34,12 @@
                     <p class="mb-1"><strong>Короткий опис:</strong> {{ resume.summary|default:'—' }}</p>
                     <p class="mb-1"><strong>Досвід:</strong> {{ resume.experience|default:'—' }}</p>
                     <p class="mb-1"><strong>Освіта:</strong> {{ resume.education|default:'—' }}</p>
-                    <p class="mb-0"><strong>Навички:</strong> {{ resume.skills|default:'—' }}</p>
+                    <p class="mb-1"><strong>Навички:</strong> {{ resume.skills|default:'—' }}</p>
+                    {% if resume.section_items %}
+                        {% for section in resume.section_items %}
+                        <p class="mb-1"><strong>{{ section.title }}:</strong> {{ section.content|default:'—' }}</p>
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>

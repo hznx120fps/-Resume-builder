@@ -9,9 +9,11 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.conf import settings
+from django.utils.html import strip_tags
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from docx import Document
 from pathlib import Path
 
 from .forms import RegisterForm, ProfileForm, ResumeForm, NewsForm, AdminAccessForm, AppearanceForm
@@ -24,6 +26,32 @@ PROJECT_UPDATES = [
     ('Покращено мобільну версію', 'Навігація, форми та картки резюме адаптовані для телефонів і планшетів.'),
     ('Синхронізація новин увімкнена', 'Стрічка оновлюється з серверної бази, тому однаково відображається на різних пристроях.'),
 ]
+
+
+def safe_filename(value):
+    value = (value or '').strip()
+    value_lower = value.lower()
+
+    aliases = {
+        'резюме': 'resume',
+        'для': 'dlya',
+        'докx': 'docx',
+        'docx': 'docx',
+    }
+    for key, replacement in aliases.items():
+        value_lower = value_lower.replace(key, replacement)
+
+    transliteration = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'ґ': 'g', 'д': 'd', 'е': 'e', 'є': 'ie', 'ж': 'zh',
+        'з': 'z', 'и': 'i', 'і': 'i', 'ї': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+        'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+        'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ь': '', 'ю': 'yu', 'я': 'ya', ' ': '-',
+        '"': '', "'": '', '(': '', ')': '', ',': '', '.': '-', '/': '-', '\\': '-',
+    }
+    normalized = ''.join(transliteration.get(ch, ch) for ch in value_lower)
+    normalized = ''.join(ch for ch in normalized if ch.isalnum() or ch in '-_')
+    normalized = normalized.strip('-')
+    return normalized or 'resume'
 
 
 def ensure_project_updates():
@@ -146,6 +174,12 @@ def resume_detail(request, pk):
 
 
 @login_required
+def resume_preview(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user, is_deleted=False)
+    return render(request, 'resume_preview.html', {'resume': resume})
+
+
+@login_required
 def resume_edit(request, pk):
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
     if request.method == 'POST':
@@ -172,8 +206,28 @@ def resume_delete(request, pk):
 def export_resume(request, pk):
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
     content = f"{resume.title}\n\nКороткий опис:\n{resume.summary or 'Н/Д'}\n\nДосвід:\n{resume.experience or 'Н/Д'}\n\nОсвіта:\n{resume.education or 'Н/Д'}\n\nНавички:\n{resume.skills or 'Н/Д'}"
+    for section in resume.section_items():
+        content += f"\n\n{section['title']}:\n{section['content'] or 'Н/Д'}"
     response = HttpResponse(content, content_type='text/plain; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="{resume.title}.txt"'
+    return response
+
+
+@login_required
+def export_resume_docx(request, pk):
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
+    document = Document()
+    document.add_heading(resume.title, level=1)
+    document.add_paragraph(f"Короткий опис:\n{resume.summary or 'Н/Д'}")
+    document.add_paragraph(f"Досвід:\n{resume.experience or 'Н/Д'}")
+    document.add_paragraph(f"Освіта:\n{resume.education or 'Н/Д'}")
+    document.add_paragraph(f"Навички:\n{resume.skills or 'Н/Д'}")
+    for section in resume.section_items():
+        document.add_paragraph(f"{section['title']}:\n{section['content'] or 'Н/Д'}")
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    filename = f"{safe_filename(resume.title)}.docx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    document.save(response)
     return response
 
 
@@ -220,8 +274,40 @@ def export_resume_pdf(request, pk):
             document.showPage()
             document.setFont(font_name, 11)
             y_position = 790
+    for section in resume.section_items():
+        if y_position < 80:
+            document.showPage()
+            y_position = 790
+        document.setFont(font_name, 13)
+        document.drawString(50, y_position, section['title'])
+        y_position -= 20
+        document.setFont(font_name, 11)
+        for line in (section['content'] or 'Н/Д').splitlines() or ['Н/Д']:
+            document.drawString(60, y_position, line[:110])
+            y_position -= 16
+        y_position -= 12
     document.save()
     return response
+
+
+@login_required
+@require_POST
+def resume_clone(request, pk):
+    source = get_object_or_404(Resume, pk=pk, user=request.user, is_deleted=False)
+    clone = Resume.objects.create(
+        user=request.user,
+        title=f'{source.title} (Копія)',
+        summary=source.summary,
+        experience=source.experience,
+        education=source.education,
+        skills=source.skills,
+        custom_sections=source.custom_sections,
+        template_name=source.template_name,
+        status='pending',
+        is_public=False,
+    )
+    messages.success(request, 'Резюме успішно скопійовано')
+    return redirect('resume_detail', pk=clone.pk)
 
 
 def news_list(request):
