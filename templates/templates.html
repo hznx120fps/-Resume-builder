@@ -7,10 +7,41 @@
             <div class="card-body">
                 <h4 class="card-title">{{ template.name }}</h4>
                 <p class="card-text">{{ template.description }}</p>
+                <div class="template-preview border rounded p-3 mb-3 {% if template.theme_class == 'dark' %}bg-dark text-white{% else %}bg-light{% endif %}" data-light="{{ template.accent_color }}" data-name="{{ template.name }}" style="border-top: 5px solid {{ template.accent_color }} !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="small text-uppercase opacity-75">Як виглядатиме</div>
+                        <span class="badge theme-label" style="background-color: {{ template.accent_color }};">{{ template.theme }}</span>
+                    </div>
+                    <div class="fw-bold fs-5 preview-name" style="color: {{ template.accent_color }};">Олена Коваль</div>
+                    <div class="small mb-2 preview-role">{{ template.preview_role }}</div>
+                    <div class="small opacity-75 preview-text">{{ template.preview_text }}</div>
+                    <hr class="my-2">
+                    <div class="small opacity-75">Профіль · Досвід · Навички · Освіта</div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle mb-3">Показати темну тему</button>
+                <p class="small text-muted mb-2">{{ template.layout }}</p>
+                <p class="small mb-1"><strong>Найкраще для:</strong> {{ template.best_for }}</p>
+                <p class="small text-muted">{{ template.accent }}</p>
                 <a class="btn btn-outline-primary" href="{% url 'choose_template' template.slug %}">Обрати шаблон</a>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+<script>
+document.querySelectorAll('.theme-toggle').forEach(function(button) {
+    button.addEventListener('click', function() {
+        const preview = button.parentElement.querySelector('.template-preview');
+        const name = preview.querySelector('.preview-name');
+        const isDark = preview.classList.toggle('bg-dark');
+        preview.classList.toggle('bg-light', !isDark);
+        preview.classList.toggle('text-white', isDark);
+        const accent = preview.dataset.light;
+        name.style.color = isDark ? '#ffffff' : accent;
+        preview.querySelector('.theme-label').textContent = isDark ? 'Темна тема' : 'Світла тема';
+        preview.querySelector('.theme-label').style.backgroundColor = isDark ? '#212529' : accent;
+        button.textContent = isDark ? 'Показати світлу тему' : 'Показати темну тему';
+    });
+});
+</script>
 {% endblock %}

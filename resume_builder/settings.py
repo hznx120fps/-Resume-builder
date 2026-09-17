@@ -14,7 +14,11 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
     if origin.strip()
 ]
-CSRF_TRUSTED_ORIGINS.append('http://192.168.31.155:8000')
+CSRF_TRUSTED_ORIGINS.extend([
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://192.168.31.133:8000',
+])
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.append('https://*.trycloudflare.com')
 

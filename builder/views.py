@@ -25,6 +25,9 @@ PROJECT_UPDATES = [
     ('Оновлено оформлення сайту', 'Додано світлу й темну тему, власний колір та перемикач градієнта.'),
     ('Покращено мобільну версію', 'Навігація, форми та картки резюме адаптовані для телефонів і планшетів.'),
     ('Синхронізація новин увімкнена', 'Стрічка оновлюється з серверної бази, тому однаково відображається на різних пристроях.'),
+    ('Додано експорт у DOCX', 'Тепер готове резюме можна завантажити у форматі Microsoft Word для подальшого редагування.'),
+    ('Додано попередній перегляд', 'Перед експортом можна перевірити структуру, додаткові секції та основні дані резюме.'),
+    ('Додано клонування резюме', 'Існуюче резюме можна скопіювати та використати як основу для нової версії.'),
 ]
 
 
@@ -69,9 +72,84 @@ def home(request):
 
 def templates_list(request):
     templates = [
-        {'slug': 'classic', 'name': 'Класичний', 'description': 'Чистий і офіційний стиль для будь-якої сфери.'},
-        {'slug': 'it', 'name': 'IT', 'description': 'Сучасний шаблон для розробників і технічних спеціалістів.'},
-        {'slug': 'manager', 'name': 'Менеджер', 'description': 'Підходить для управлінців і командних ролей.'},
+        {
+            'slug': 'classic',
+            'name': 'Класичний',
+            'description': 'Чистий і офіційний стиль для будь-якої сфери.',
+            'layout': 'Імʼя та посада → короткий профіль → досвід → освіта → навички',
+            'best_for': 'Офісні професії, фінанси, право та державні установи.',
+            'accent': 'Стримана структура та максимальна читабельність.',
+            'theme': 'Світла тема',
+            'theme_class': 'light',
+            'accent_color': '#0d6efd',
+            'preview_role': 'Фінансовий аналітик',
+            'preview_text': 'Аналізую дані та допомагаю командам приймати точні рішення.',
+        },
+        {
+            'slug': 'it',
+            'name': 'IT',
+            'description': 'Сучасний шаблон для розробників і технічних спеціалістів.',
+            'layout': 'Імʼя та роль → стек технологій → проєкти → досвід → освіта',
+            'best_for': 'Розробники, QA, DevOps, аналітики та інші digital-фахівці.',
+            'accent': 'Фокус на технологіях, проєктах і вимірюваних результатах.',
+            'theme': 'Світла тема',
+            'theme_class': 'light',
+            'accent_color': '#6f42c1',
+            'preview_role': 'Python Developer',
+            'preview_text': 'Розробляю вебзастосунки та підтримую надійні API.',
+        },
+        {
+            'slug': 'manager',
+            'name': 'Менеджер',
+            'description': 'Підходить для управлінців і командних ролей.',
+            'layout': 'Імʼя та напрям → ключові результати → управлінський досвід → компетенції',
+            'best_for': 'Керівники, project/product-менеджери та координатори команд.',
+            'accent': 'Помітні досягнення, масштаб відповідальності та сильні сторони.',
+            'theme': 'Світла тема',
+            'theme_class': 'light',
+            'accent_color': '#198754',
+            'preview_role': 'Project Manager',
+            'preview_text': 'Керую командами та доводжу проєкти до результату.',
+        },
+        {
+            'slug': 'minimal',
+            'name': 'Мінімалізм',
+            'description': 'Повітряний шаблон із великою кількістю вільного простору.',
+            'layout': 'Імʼя → контакти → профіль → досвід → освіта',
+            'best_for': 'Дизайнери, автори, консультанти та спеціалісти з чітким досвідом.',
+            'accent': 'Лаконічний вигляд, який легко читати з телефона.',
+            'theme': 'Світла тема',
+            'theme_class': 'light',
+            'accent_color': '#0d6efd',
+            'preview_role': 'UX/UI Designer',
+            'preview_text': 'Створюю зрозумілі цифрові продукти для людей.',
+        },
+        {
+            'slug': 'night',
+            'name': 'Нічний',
+            'description': 'Контрастний темний шаблон із яскравим акцентом.',
+            'layout': 'Імʼя → роль → навички → проєкти → досвід',
+            'best_for': 'IT-фахівці, розробники та кандидати з digital-портфоліо.',
+            'accent': 'Темна тема добре виглядає на екрані та виділяє ключові навички.',
+            'theme': 'Темна тема',
+            'theme_class': 'dark',
+            'accent_color': '#ffb703',
+            'preview_role': 'Backend Developer',
+            'preview_text': 'Будую надійні сервіси на Python і Django.',
+        },
+        {
+            'slug': 'creative',
+            'name': 'Креативний',
+            'description': 'Сміливий шаблон для помітної персональної презентації.',
+            'layout': 'Імʼя → сильні сторони → портфоліо → досвід → освіта',
+            'best_for': 'Маркетинг, медіа, комунікації та креативні професії.',
+            'accent': 'Яскравий акцент допомагає запамʼятатися рекрутеру.',
+            'theme': 'Світла тема',
+            'theme_class': 'light',
+            'accent_color': '#d63384',
+            'preview_role': 'Content Strategist',
+            'preview_text': 'Перетворюю ідеї на історії, які працюють.',
+        },
     ]
     return render(request, 'templates.html', {'templates': templates})
 
@@ -323,7 +401,7 @@ def news_list(request):
         items = items.filter(category=category)
     items = items.order_by('-is_pinned', '-created_at')
     from django.core.paginator import Paginator
-    page = Paginator(items, 6).get_page(request.GET.get('page'))
+    page = Paginator(items, 10).get_page(request.GET.get('page'))
     form = None
     if request.user.is_authenticated and request.user.is_staff:
         form = NewsForm()
@@ -407,7 +485,14 @@ def delete_news(request, pk):
 
 @login_required
 def choose_template(request, slug):
-    templates = {'classic': 'Класичний', 'it': 'IT', 'manager': 'Менеджер'}
+    templates = {
+        'classic': 'Класичний',
+        'it': 'IT',
+        'manager': 'Менеджер',
+        'minimal': 'Мінімалізм',
+        'night': 'Нічний',
+        'creative': 'Креативний',
+    }
     if slug not in templates:
         return redirect('templates_list')
     request.session['selected_template'] = slug
